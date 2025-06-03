@@ -2,9 +2,9 @@ autoload -Uz log_debug log_error log_info log_status log_output dep_checkout
 
 ## Dependency Information
 local name='amf'
-local version='1.4.29'
+local version='1.4.34'
 local url='https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git'
-local hash='bc64bf6e8bfca3083755b7cbec3c23d5546fb04a'
+local hash='6d7bec0469961e2891c6e1aaa5122b76ed82e1db'
 
 ## Dependency Overrides
 local targets=('windows-x*')
@@ -21,6 +21,6 @@ install() {
 
   log_info "Install (%F{3}${target}%f)"
 
-  cd "${dir}"
-  rsync -a amf/public/include/  "${target_config[output_dir]}/include/AMF"
+  cd ${dir}
+  rsync -a amf/public/include/ ${target_config[output_dir]}/include/AMF
 }

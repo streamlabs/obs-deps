@@ -2,7 +2,8 @@ param(
     [string] $Name = 'luajit',
     [string] $Version = '2.1',
     [string] $Uri = 'https://github.com/luajit/luajit.git',
-    [string] $Hash = '505e2c03de35e2718eef0d2d3660712e06dadf1f'
+    [string] $Hash = 'f725e44cda8f359869bf8f92ce71787ddca45618',
+    [array] $Targets = @('x64')
 )
 
 function Setup {
@@ -33,7 +34,7 @@ function Install {
         Force = $true
     }
 
-    $null = New-Item @Params
+    New-Item @Params -ErrorAction SilentlyContinue > $null
 
     $Items = @(
         @{
@@ -41,8 +42,12 @@ function Install {
             Destination = "$($ConfigData.OutputPath)/include/luajit"
         }
         @{
-            Path = "src/lua51.dll", "src/lua51.lib"
+            Path = "src/lua51.dll"
             Destination = "$($ConfigData.OutputPath)/bin"
+        }
+        @{
+            Path = "src/lua51.lib"
+            Destination = "$($ConfigData.OutputPath)/lib"
         }
     )
 

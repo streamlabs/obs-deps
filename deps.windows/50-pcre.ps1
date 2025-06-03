@@ -2,7 +2,8 @@ param(
     [string] $Name = 'pcre',
     [string] $Version = '10.40',
     [string] $Uri = 'https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.40/pcre2-10.40.zip',
-    [string] $Hash = "${PSScriptRoot}/checksums/pcre2-10.40.zip.sha256"
+    [string] $Hash = "${PSScriptRoot}/checksums/pcre2-10.40.zip.sha256",
+    [array] $Targets = @('x64')
 )
 
 function Setup {
@@ -24,7 +25,7 @@ function Configure {
 
     $Options = @(
         $CmakeOptions
-        "-DBUILD_SHARED_LIBS=OFF"
+        "-DBUILD_SHARED_LIBS:BOOL=OFF"
     )
 
     Invoke-External cmake -S . -B "build_${Target}" @Options

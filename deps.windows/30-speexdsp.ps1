@@ -3,10 +3,11 @@ param(
     [string] $Version = '1.2.1',
     [string] $Uri = 'https://github.com/xiph/speexdsp.git',
     [string] $Hash = '1b28a0f61bc31162979e1f26f3981fc3637095c8',
+    [array] $Targets = @('x64'),
     [array] $Patches = @(
         @{
             PatchFile = "${PSScriptRoot}/patches/speexdsp/0001-Add-CMakeLists.patch"
-            HashSum = 'a7e625bdf83fea2c0d0a215e7e04a44c0ac0f892217895481723e33e0008ba18'
+            HashSum = 'e8814dbc5683ce6a3c70553147fbdca92b74aab45ceb06e0040127754fe991c5'
         }
     )
 )

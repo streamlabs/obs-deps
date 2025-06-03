@@ -72,9 +72,9 @@ run_stages() {
 package() {
   autoload -Uz log_info log_status
   if [[ ${PACKAGE_NAME} == 'qt'* ]] {
-    local filename="${target%%-*}-deps-${PACKAGE_NAME}-${current_date}-${target_config[arch]}.tar.xz"
+    local filename="${target%%-*}-deps-${PACKAGE_NAME}-${github_hash}-${target_config[arch]}.tar.xz"
   } else {
-    local filename="${target%%-*}-${PACKAGE_NAME}-${current_date}-${target_config[arch]}.tar.xz"
+    local filename="${target%%-*}-${PACKAGE_NAME}-${github_hash}-${target_config[arch]}.tar.xz"
   }
 
   pushd ${PWD}
@@ -85,9 +85,12 @@ package() {
   if [[ ${PACKAGE_NAME} != 'qt'* ]] {
     log_status "Cleanup unnecessary files"
 
-    rm -rf lib/^(*.dylib|libajantv*|*.a|*.so*|*.lib|*.framework|*.dSYM|cmake)(N)
-    rm -rf lib/(libpcre*|libpng*)(N)
-    rm -rf bin/^(*.exe|*.dll|*.pdb|swig)(N)
+    rm -rf -- lib/^(*.dylib|*.a|ffmpeg|ffprobe|*.so*|*.lib|*.framework|*.dSYM|cmake)(N)
+    rm -rf -- lib/(libpcre*|libpng*|libfreetype.a)(N)
+    rm -rf -- lib/cmake/MbedTLS(N)
+    rm -rf -- bin/^(*.exe|*.dll|*.pdb|ffmpeg|ffprobe|swig)(N)
+
+    if [[ ${PACKAGE_NAME} == ffmpeg ]] rm -rf -- lib/*.a(N)
 
     if [[ -f bin/swig ]] {
       swig_lib=(share/swig/*(/))
@@ -99,9 +102,18 @@ package() {
     if [[ -d share ]] rm -rf share/^(swig|cmake)(N)
     if [[ -d cmake ]] rm -rf cmake
     if [[ -d man ]] rm -rf man
+  } else {
+    rm -rf -- lib/*.(a|la|prl)(N)
+  }
+
+  local -a dsym_files=(**/*.dSYM(N))
+  if [[ ${target} == macos* ]] && (( #dsym_files )) {
+    mkdir -p ${target_config[output_dir]}-dSYMs
+    cp -Rfp ${dsym_files} ${target_config[output_dir]}-dSYMs
+    rm -rf -- ${dsym_files}
 
     mkdir -p share/obs-deps
-    echo "${current_date}" >! share/obs-deps/VERSION
+    echo "${github_hash}" >! share/obs-deps/VERSION
   }
 
   log_status "Create archive ${filename}"
@@ -110,6 +122,15 @@ package() {
   _tarflags+=(-cJf)
 
   XZ_OPT=-T0 tar ${_tarflags} ${filename} -- *
+
+  if [[ ${target} == macos* ]] && (( #dsym_files )) {
+    dsym_filename="${filename//.tar.xz/-dSYMs.tar.xz}"
+    log_status "Create archive ${dsym_filename}"
+    pushd ${target_config[output_dir]}-dSYMs
+    XZ_OPT=-T0 tar ${_tarflags} ${dsym_filename} -- *
+    mv -- ${dsym_filename} ${PWD:A:h}
+    popd
+  }
 
   mv -- ${filename} ${PWD:A:h}
 }

@@ -23,13 +23,12 @@ function Invoke-SafeWebRequest {
         [switch] $CheckExisting
     )
 
-    if ( ! ( Test-Path function:Log-Information ) ) {
-        . $PSScriptRoot/Logger.ps1
+    if ( ! ( Test-Path function:Invoke-External ) ) {
+        . $PSScriptRoot/Invoke-External.ps1
     }
 
-    if ( $Resume -and $PSVersionTable.PSVersion -lt "6.1.0") {
-        Log-Warning "-Resume only available on PowerShell 6.1.0 or later, disabling"
-        $Resume = $false
+    if ( ! ( Test-Path function:Log-Information ) ) {
+        . $PSScriptRoot/Logger.ps1
     }
 
     if ( ! ( Test-Path $HashFile ) ) {
@@ -58,7 +57,19 @@ function Invoke-SafeWebRequest {
                 }
             }
 
-            curl.exe -Lf $Uri -o $OutFile $($HeaderStrings -join " ")
+            $CurlOptions = @(
+                '--fail'
+                '--location'
+                $(if ( $Env:CI -eq $null ) { '--progress-bar' })
+                '--output', "$OutFile"
+            )
+
+            $CurlVersionResult = $($(Invoke-External curl --version) -join ' ') -match 'curl (?<CurlVersion>\d+\.\d+\.\d+)'
+            if ( ( $Matches.CurlVersion -ge '8.5.0' ) -and $Resume ) {
+                $CurlOptions += @('-C', '-')
+            }
+
+            Invoke-External curl @CurlOptions @HeaderStrings $Uri
 
             $NewHash = Get-FileHash -Path $OutFile -Algorithm $Algorithm
         }

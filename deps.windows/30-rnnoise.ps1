@@ -2,7 +2,8 @@ param(
     [string] $Name = 'rnnoise',
     [string] $Version = '2020-07-28',
     [string] $Uri = 'https://github.com/xiph/rnnoise.git',
-    [string] $Hash = '2938bcf94a2fe3f850df542f5de3996905059c97'
+    [string] $Hash = '2938bcf94a2fe3f850df542f5de3996905059c97',
+    [array] $Targets = @('x64')
 )
 
 function Setup {
@@ -25,8 +26,8 @@ function Configure {
     $OnOff = @('OFF', 'ON')
     $Options = @(
         $CmakeOptions
-        "-DBUILD_SHARED_LIBS=$($OnOff[$script:Shared.isPresent])"
-        '-DRNNOISE_COMPILE_OPUS=ON'
+        "-DBUILD_SHARED_LIBS:BOOL=$($OnOff[$script:Shared.isPresent])"
+        '-DRNNOISE_COMPILE_OPUS:BOOL=ON'
     )
 
     Log-Debug "CMake configure options: ${Options}"

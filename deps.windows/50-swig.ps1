@@ -3,6 +3,7 @@ param(
     [string] $Version = '4.1.0',
     [string] $Uri = 'https://github.com/swig/swig.git',
     [string] $Hash = "4dd285fad736c014224ef2ad25b85e17f3dce1f9",
+    [array] $Targets = @('x64'),
     [array] $Patches = @(
         @{
             PatchFile = "${PSScriptRoot}/patches/swig/0001-add-Python-3-stable-abi.patch"
@@ -90,6 +91,14 @@ function Fixup {
     $Items = @(
         @{
             Path = "$($ConfigData.OutputPath)/swig/bin/swig.exe"
+            Destination = "$($ConfigData.OutputPath)/bin/swig.exe"
+        },
+        @{
+            Path = "$($ConfigData.OutputPath)/swig/share/swig/${Version}"
+            Destination = "$($ConfigData.OutputPath)/bin/Lib"
+        }
+        @{
+            Path = "$($ConfigData.OutputPath)/swig/bin/swig.exe"
             Destination = "$($ConfigData.OutputPath)/swig/swig.exe"
         },
         @{
@@ -101,7 +110,10 @@ function Fixup {
     $Items | ForEach-Object {
         $Item = $_
         Log-Status ('{0} => {1}' -f $Item.Path, $Item.Destination)
-        Move-Item @Item
+        if ( Test-Path $Item.Destination ) {
+            Remove-Item -Recurse -Force $Item.Destination
+        }
+        Copy-Item @Item -Recurse
     }
 
     Remove-Item "$($ConfigData.OutputPath)/swig/share" -Recurse -ErrorAction 'SilentlyContinue'

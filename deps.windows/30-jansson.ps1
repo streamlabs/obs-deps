@@ -25,6 +25,7 @@ function Configure {
     $OnOff = @('OFF', 'ON')
     $Options = @(
         $CmakeOptions
+        '-DCMAKE_POLICY_VERSION_MINIMUM=3.5'
         '-DJANSSON_EXAMPLES:BOOL=OFF'
         '-DJANSSON_BUILD_DOCS:BOOL=OFF'
         "-DJANSSON_BUILD_SHARED_LIBS:BOOL=$($OnOff[$script:Shared.isPresent])"

@@ -31,6 +31,7 @@ config() {
 
   args=(
     ${cmake_flags}
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     -DJANSSON_EXAMPLES=OFF
     -DJANSSON_BUILD_DOCS=OFF
     -DJANSSON_BUILD_SHARED_LIBS="${_onoff[(( shared_libs + 1 ))]}"

@@ -169,7 +169,7 @@ jobs:
 
           $Target='${{ matrix.target }}'
           $ArtifactName="ffmpeg-windows-${Target}-${{ needs.pre-checks.outputs.shortHash }}"
-          $FileName="windows-ffmpeg-${{ steps.metadata.outputs.version }}-${Target}.zip"
+          $FileName="windows-ffmpeg-$(Get-Date -Format 'yyyy-MM-dd')-${Target}.zip"
 
           "artifactName=${ArtifactName}" >> $env:GITHUB_OUTPUT
           "artifactFileName=${FileName}" >> $env:GITHUB_OUTPUT

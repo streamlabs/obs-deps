@@ -71,10 +71,11 @@ run_stages() {
 
 package() {
   autoload -Uz log_info log_status
+  local package_version="${OBS_DEPS_VERSION:-${github_hash:-$(date +"%Y-%m-%d")}}"
   if [[ ${PACKAGE_NAME} == 'qt'* ]] {
-    local filename="${target%%-*}-deps-${PACKAGE_NAME}-${github_hash}-${target_config[arch]}.tar.xz"
+    local filename="${target%%-*}-deps-${PACKAGE_NAME}-${package_version}-${target_config[arch]}.tar.xz"
   } else {
-    local filename="${target%%-*}-${PACKAGE_NAME}-${github_hash}-${target_config[arch]}.tar.xz"
+    local filename="${target%%-*}-${PACKAGE_NAME}-${package_version}-${target_config[arch]}.tar.xz"
   }
 
   pushd ${PWD}
@@ -111,10 +112,10 @@ package() {
     mkdir -p ${target_config[output_dir]}-dSYMs
     cp -Rfp ${dsym_files} ${target_config[output_dir]}-dSYMs
     rm -rf -- ${dsym_files}
-
-    mkdir -p share/obs-deps
-    echo "${github_hash}" >! share/obs-deps/VERSION
   }
+
+  mkdir -p share/obs-deps
+  echo "${package_version}" >! share/obs-deps/VERSION
 
   log_status "Create archive ${filename}"
   local -a _tarflags=()

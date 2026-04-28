@@ -118,6 +118,8 @@ function Run-Stages {
 function Package-Dependencies {
     Push-Location -Stack BuildTemp -Path $ConfigData.OutputPath
 
+    $PackageVersion = if ( $env:OBS_DEPS_VERSION ) { $env:OBS_DEPS_VERSION } else { $script:CurrentDate }
+
     Log-Information "Cleanup unnecessary files"
 
     switch ( $PackageName ) {
@@ -128,7 +130,7 @@ function Package-Dependencies {
             Get-ChildItem ./share/* | Remove-Item -Force -Recurse
             Get-ChildItem ./bin/*.lib | Move-Item -Destination ./lib
             Get-ChildItem -Attribute Directory -Recurse -Include 'pkgconfig' | Remove-Item -Force -Recurse
-            $ArchiveFileName = "windows-ffmpeg-${CurrentDate}-${Target}.zip"
+            $ArchiveFileName = "windows-ffmpeg-${PackageVersion}-${Target}.zip"
         }
         dependencies {
             Get-ChildItem ./bin/*.lib | Move-Item -Destination ./lib
@@ -141,10 +143,10 @@ function Package-Dependencies {
                 Get-ChildItem ./share/cmake -Exclude 'nlohmann_json*' | Remove-Item -Recurse
             }
 
-            $ArchiveFileName = "windows-deps-${CurrentDate}-${Target}.zip"
+            $ArchiveFileName = "windows-deps-${PackageVersion}-${Target}.zip"
         }
         qt {
-            $ArchiveFileName = "windows-deps-qt6-${CurrentDate}-${Target}-${Configuration}.zip"
+            $ArchiveFileName = "windows-deps-qt6-${PackageVersion}-${Target}-${Configuration}.zip"
         }
     }
 
@@ -159,7 +161,7 @@ function Package-Dependencies {
 
     New-Item @Params *> $null
 
-    Get-Date -Format "yyyy-MM-dd" | Set-Content -Path share/obs-deps/VERSION
+    $PackageVersion | Set-Content -Path share/obs-deps/VERSION
 
     Log-Information "Package dependencies"
 

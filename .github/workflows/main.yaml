@@ -28,6 +28,7 @@ jobs:
     outputs:
       seekingTesters: ${{ steps.checks.outputs.seekingTesters }}
       shortHash: ${{ steps.checks.outputs.shortHash }}
+      packageVersion: ${{ steps.checks.outputs.packageVersion }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,6 +55,11 @@ jobs:
           esac
 
           echo "shortHash=${GITHUB_SHA:0:9}" >> $GITHUB_OUTPUT
+          if [[ "${GITHUB_REF_TYPE}" == 'tag' ]]; then
+            echo "packageVersion=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "packageVersion=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          fi
 
   ffmpeg-macos-build:
     name: Build FFmpeg for macOS
@@ -95,19 +101,19 @@ jobs:
 
           if (( #remove_formulas )) brew uninstall --ignore-dependencies ${remove_formulas}
 
-          local -r sha_string=${{ github.sha }}
+          local -r package_version='${{ needs.pre-checks.outputs.packageVersion }}'
           local -r target='${{ matrix.target }}'
 
           artifact_name="ffmpeg-${target}-${{ needs.pre-checks.outputs.shortHash }}"
-          file_name="${target%%-*}-ffmpeg-${sha_string}-${target##*-}.tar.xz"
+          file_name="${target%%-*}-ffmpeg-${package_version}-${target##*-}.tar.xz"
           dsym_artifact_name="ffmpeg-${target}-dSYMs-${{ needs.pre-checks.outputs.shortHash }}"
-          dsym_file_name="${target%%-*}-ffmpeg-${sha_string}-${target##*-}-dSYMs.tar.xz"
+          dsym_file_name="${target%%-*}-ffmpeg-${package_version}-${target##*-}-dSYMs.tar.xz"
 
           print "artifactName=${artifact_name}" >> $GITHUB_OUTPUT
           print "artifactFileName=${file_name}" >> $GITHUB_OUTPUT
           print "dsymArtifactName=${dsym_artifact_name}" >> $GITHUB_OUTPUT
           print "dsymArtifactFileName=${dsym_file_name}" >> $GITHUB_OUTPUT
-          print "ccacheDate=${sha_string}" >> $GITHUB_OUTPUT
+          print "ccacheDate=${package_version}" >> $GITHUB_OUTPUT
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -125,6 +131,7 @@ jobs:
           config: ${{ matrix.config }}
         env:
           github_hash: ${{ github.sha }}
+          OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
         if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
@@ -168,8 +175,9 @@ jobs:
           # Setup Environment
 
           $Target='${{ matrix.target }}'
+          $PackageVersion='${{ needs.pre-checks.outputs.packageVersion }}'
           $ArtifactName="ffmpeg-windows-${Target}-${{ needs.pre-checks.outputs.shortHash }}"
-          $FileName="windows-ffmpeg-$(Get-Date -Format 'yyyy-MM-dd')-${Target}.zip"
+          $FileName="windows-ffmpeg-${PackageVersion}-${Target}.zip"
 
           "artifactName=${ArtifactName}" >> $env:GITHUB_OUTPUT
           "artifactFileName=${FileName}" >> $env:GITHUB_OUTPUT
@@ -180,6 +188,8 @@ jobs:
           target: ${{ matrix.target }}
           type: ${{ matrix.type }}
           config: ${{ matrix.config }}
+        env:
+          OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
         if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
@@ -251,19 +261,19 @@ jobs:
 
           if (( #remove_formulas )) brew uninstall --ignore-dependencies ${remove_formulas}
 
-          local -r sha_string=${{ github.sha }}
+          local -r package_version='${{ needs.pre-checks.outputs.packageVersion }}'
           local -r target='${{ matrix.target }}'
 
           artifact_name="deps-${target}-${{ needs.pre-checks.outputs.shortHash }}"
-          file_name="${target%%-*}-deps-${sha_string}-${target##*-}.tar.xz"
+          file_name="${target%%-*}-deps-${package_version}-${target##*-}.tar.xz"
           dsym_artifact_name="deps-${target}-dSYMs-${{ needs.pre-checks.outputs.shortHash }}"
-          dsym_file_name="${target%%-*}-deps-${sha_string}-${target##*-}-dSYMs.tar.xz"
+          dsym_file_name="${target%%-*}-deps-${package_version}-${target##*-}-dSYMs.tar.xz"
 
           echo "artifactName=${artifact_name}" >> $GITHUB_OUTPUT
           echo "artifactFileName=${file_name}" >> $GITHUB_OUTPUT
           echo "dsymArtifactName=${dsym_artifact_name}" >> $GITHUB_OUTPUT
           echo "dsymArtifactFileName=${dsym_file_name}" >> $GITHUB_OUTPUT
-          echo "ccacheDate=${sha_string}" >> $GITHUB_OUTPUT
+          echo "ccacheDate=${package_version}" >> $GITHUB_OUTPUT
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -281,6 +291,7 @@ jobs:
           config: ${{ matrix.config }}
         env:
           github_hash: ${{ github.sha }}
+          OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
         if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
@@ -348,17 +359,17 @@ jobs:
 
           if (( #remove_formulas )) brew uninstall --ignore-dependencies ${remove_formulas}
 
-          local -r sha_string=${{ github.sha }}
+          local -r package_version='${{ needs.pre-checks.outputs.packageVersion }}'
           artifact_name="qt6-macos-universal-${{ needs.pre-checks.outputs.shortHash }}"
-          file_name="macos-deps-qt6-${sha_string}-universal.tar.xz"
+          file_name="macos-deps-qt6-${package_version}-universal.tar.xz"
           dsym_artifact_name="qt6-macos-universal-dSYMs-${{ needs.pre-checks.outputs.shortHash }}"
-          dsym_file_name="macos-deps-qt6-${sha_string}-universal-dSYMs.tar.xz"
+          dsym_file_name="macos-deps-qt6-${package_version}-universal-dSYMs.tar.xz"
 
           print "artifactName=${artifact_name}" >> $GITHUB_OUTPUT
           print "artifactFileName=${file_name}" >> $GITHUB_OUTPUT
           print "dsymArtifactName=${dsym_artifact_name}" >> $GITHUB_OUTPUT
           print "dsymArtifactFileName=${dsym_file_name}" >> $GITHUB_OUTPUT
-          print "ccacheDate=${sha_string}" >> $GITHUB_OUTPUT
+          print "ccacheDate=${package_version}" >> $GITHUB_OUTPUT
 
       - name: Build macOS Qt6
         uses: ./.github/actions/build-qt
@@ -367,6 +378,7 @@ jobs:
           config: Release
         env:
           github_hash: ${{ github.sha }}
+          OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
         if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
@@ -446,8 +458,9 @@ jobs:
           # Setup Environment
 
           $Target='${{ matrix.target }}'
+          $PackageVersion='${{ needs.pre-checks.outputs.packageVersion }}'
           $ArtifactName="deps-windows-${Target}-${{ needs.pre-checks.outputs.shortHash }}"
-          $FileName="windows-deps-$(Get-Date -Format 'yyyy-MM-dd')-${Target}.zip"
+          $FileName="windows-deps-${PackageVersion}-${Target}.zip"
 
           "artifactName=${ArtifactName}" >> $env:GITHUB_OUTPUT
           "artifactFileName=${FileName}" >> $env:GITHUB_OUTPUT
@@ -503,6 +516,8 @@ jobs:
           target: ${{ matrix.target }}
           type: ${{ matrix.type }}
           config: ${{ matrix.config }}
+        env:
+          OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
         if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
@@ -534,8 +549,9 @@ jobs:
         id: setup
         run: |
           # Setup Environment
+          $PackageVersion='${{ needs.pre-checks.outputs.packageVersion }}'
           $ArtifactName="qt6-windows-${{ matrix.target }}-${{ matrix.config }}-${{ needs.pre-checks.outputs.shortHash }}"
-          $FileName="windows-deps-qt6-$(Get-Date -Format 'yyyy-MM-dd')-${{ matrix.target }}-${{ matrix.config }}.zip"
+          $FileName="windows-deps-qt6-${PackageVersion}-${{ matrix.target }}-${{ matrix.config }}.zip"
 
           "artifactName=${ArtifactName}" >> $env:GITHUB_OUTPUT
           "artifactFileName=${FileName}" >> $env:GITHUB_OUTPUT
@@ -545,6 +561,8 @@ jobs:
         with:
           target: ${{ matrix.target }}
           config: ${{ matrix.config }}
+        env:
+          OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
         if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
@@ -617,7 +635,13 @@ jobs:
 
             files=("${GITHUB_WORKSPACE}"/qt6-windows-"${arch}"-!(*-@(Debug|RelWithDebInfo|Release|MinSizeRel))/*.zip)
             for artifact in "${files[@]}"; do
-              mv "${artifact}" "${GITHUB_WORKSPACE}"
+              artifact_name=${artifact##*/}
+
+              if [[ ${artifact_name} == *-PDBs.zip ]]; then
+                mv "${artifact}" "${GITHUB_WORKSPACE}/windows-deps-qt6-${{ steps.metadata.outputs.version }}-${arch}-PDBs.zip"
+              else
+                mv "${artifact}" "${GITHUB_WORKSPACE}/windows-deps-qt6-${{ steps.metadata.outputs.version }}-${arch}.zip"
+              fi
             done
             popd > /dev/null
           done

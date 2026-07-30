@@ -6,6 +6,8 @@ local version='3.12.0'
 local url='https://aomedia.googlesource.com/aom.git'
 local hash='3b624af45b86646a20b11a9ff803aeae588cdee6'
 local -a patches=(
+  "macos ${0:a:h}/patches/libaom/0002-handle-nasm-3-help-output.patch \
+  31df06049b22f8042e40054c36e638ee79d952d23cf059a9166fe5d2f71fb4dd"
   "windows ${0:a:h}/patches/libaom/0001-force-threading-shim-usage.patch \
   6fa9ca74001c5fa3a6521a2b4944be2a8b4350d31c0234aede9a7052a8f1890b"
 )

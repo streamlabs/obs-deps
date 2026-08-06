@@ -2,9 +2,9 @@ autoload -Uz log_debug log_error log_info log_status log_output
 
 ## Dependency Information
 local name='FFmpeg'
-local version='7.1.1'
+local version='7.1.5'
 local url='https://github.com/FFmpeg/FFmpeg.git'
-local hash='db69d06eeeab4f46da15030a80d539efb4503ca8'
+local hash='3a0867c2bfda4a4d4309ca1a8cbdc6175e67f587'
 local -a patches=(
   "* ${0:a:h}/patches/FFmpeg/0001-flvdec-handle-unknown.patch \
     5a5185f54cbcf4672763cce687d1b6ddb662549b69637da826279ce4797f57ef"
@@ -217,6 +217,8 @@ config() {
     --disable-stripping
     --disable-encoder="hevc"
     --disable-decoder="hevc"
+    # Unused by OBS and a repeat source of decoder CVEs (CVE-2026-8461, CVE-2026-66039)
+    --disable-decoder="magicyuv,mace3,mace6"
   )
 
   if (( ! shared_libs )) {

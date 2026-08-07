@@ -44,6 +44,39 @@ jobs:
             echo "packageVersion=${GITHUB_SHA}" >> $GITHUB_OUTPUT
           fi
 
+  codec-policy:
+    name: Verify Codec Policy (scripts)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assert required codec flags are present
+        run: |
+          : Assert required codec flags are present
+
+          # Upstream merges have silently dropped these four times: 2023-03, twice in
+          # 2023-08, and the FFmpeg 7.0 bump (2024-05-08sl2) which went unnoticed for
+          # two years. A grep is cheap; rediscovering the regression is not.
+          status=0
+          require() {
+            if ! grep -qF -- "$2" "$1"; then
+              echo "::error file=$1::missing required codec flag: $2"
+              status=1
+            fi
+          }
+
+          require deps.ffmpeg/99-ffmpeg.ps1 '--disable-decoder=hevc,hevc_cuvid'
+          require deps.ffmpeg/99-ffmpeg.ps1 '--disable-decoder=magicyuv,mace3,mace6'
+          require deps.ffmpeg/99-ffmpeg.zsh '--disable-decoder="hevc"'
+          require deps.ffmpeg/99-ffmpeg.zsh '--disable-decoder="magicyuv,mace3,mace6"'
+
+          if [[ ${status} -eq 0 ]]; then echo 'All required codec flags present.'; fi
+          exit ${status}
+
   ffmpeg-macos-build:
     name: Build FFmpeg for macOS
     runs-on: macos-15
@@ -171,6 +204,32 @@ jobs:
           config: ${{ matrix.config }}
         env:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
+
+      - name: Verify Codec Policy
+        if: matrix.target == 'x64'
+        run: |
+          # Verify Codec Policy
+          # x64 only: the runner cannot execute an arm64 build.
+
+          $Zip = "${{ github.workspace }}\windows\${{ steps.setup.outputs.artifactFileName }}"
+          $Tmp = Join-Path ${env:RUNNER_TEMP} 'codec-policy'
+          Expand-Archive -Path $Zip -DestinationPath $Tmp -Force
+          $FFmpeg = Get-ChildItem $Tmp -Recurse -Filter 'ffmpeg.exe' | Select-Object -First 1
+          if ( ! $FFmpeg ) { throw 'ffmpeg.exe not found in build output' }
+
+          $Decoders = & $FFmpeg.FullName -hide_banner -decoders
+          function Test-Decoder($Name) {
+            [bool]($Decoders | Select-String -Pattern "^\s*\S+\s+$([regex]::Escape($Name))\s")
+          }
+
+          # Positive control: an empty or failed listing must not silently pass.
+          if ( ! (Test-Decoder 'h264') ) { throw 'Sanity check failed: h264 decoder missing, decoder listing is unusable' }
+
+          $Forbidden = @('hevc', 'hevc_cuvid', 'magicyuv', 'mace3', 'mace6')
+          $Present = $Forbidden | Where-Object { Test-Decoder $_ }
+          if ( $Present ) { throw "Forbidden decoders present in build: $($Present -join ', ')" }
+
+          Write-Host "Codec policy OK - absent: $($Forbidden -join ', ')"
 
       - name: Publish Build Artifacts
         uses: actions/upload-artifact@v4

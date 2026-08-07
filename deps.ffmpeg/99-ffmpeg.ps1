@@ -95,6 +95,10 @@ function Configure {
         '--disable-postproc'
         # Unused by OBS and a repeat source of decoder CVEs (CVE-2026-8461, CVE-2026-66039)
         '--disable-decoder=magicyuv,mace3,mace6'
+        # Software HEVC decode. Policy since 2022, lost in the FFmpeg 7.0 bump
+        # (2024-05-08sl2). hevc_cuvid goes too: left alone it wins find_probe_decoder
+        # and crashes on non-NVIDIA hosts. Hardware encoders are unaffected.
+        '--disable-decoder=hevc,hevc_cuvid'
         $(if ( ! $script:Shared ) { ('--pkg-config-flags=' + "'--static'") })
         $(if ( $Configuration -eq 'Debug' ) { '--enable-debug' } else { '--disable-debug' })
         $(if ( $Configuration -eq 'RelWithDebInfo' ) { '--disable-stripping' })

@@ -215,7 +215,8 @@ config() {
     --disable-doc
     --disable-postproc
     --disable-stripping
-    --disable-encoder="hevc"
+    # Software HEVC decode. No cuvid on macOS, so no hevc_cuvid counterpart here.
+    # Hardware encoders are unaffected.
     --disable-decoder="hevc"
     # Unused by OBS and a repeat source of decoder CVEs (CVE-2026-8461, CVE-2026-66039)
     --disable-decoder="magicyuv,mace3,mace6"

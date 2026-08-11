@@ -96,9 +96,10 @@ function Configure {
         # Unused by OBS and a repeat source of decoder CVEs (CVE-2026-8461, CVE-2026-66039)
         '--disable-decoder=magicyuv,mace3,mace6'
         # Software HEVC decode. Policy since 2022, lost in the FFmpeg 7.0 bump
-        # (2024-05-08sl2). hevc_cuvid goes too: left alone it wins find_probe_decoder
-        # and crashes on non-NVIDIA hosts. Hardware encoders are unaffected.
-        '--disable-decoder=hevc,hevc_cuvid'
+        # (2024-05-08sl2). hevc_cuvid is deliberately kept: it is pure NVDEC, and
+        # without it NVIDIA hosts lose HEVC playback entirely, since every other
+        # hardware path is a hwaccel on the software decoder. Encoders unaffected.
+        '--disable-decoder=hevc'
         $(if ( ! $script:Shared ) { ('--pkg-config-flags=' + "'--static'") })
         $(if ( $Configuration -eq 'Debug' ) { '--enable-debug' } else { '--disable-debug' })
         $(if ( $Configuration -eq 'RelWithDebInfo' ) { '--disable-stripping' })

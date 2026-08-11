@@ -10,8 +10,6 @@ local -a patches=(
     5a5185f54cbcf4672763cce687d1b6ddb662549b69637da826279ce4797f57ef"
   "* ${0:a:h}/patches/FFmpeg/0002-libaomenc-presets.patch \
     d5f1410efb31fe31e8e905ec3f10ccb7841dd5594cb3591c3b205e77232fd183"
-  "* ${0:a:h}/patches/FFmpeg/0004-FFmpeg-5.0.1-cuvid.patch \
-    d44609a43f7f09819c74cdfa6fa90c9a1de61b3673aa95e87a294c259f203717"
 )
 
 ## Build Steps

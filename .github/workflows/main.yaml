@@ -69,7 +69,7 @@ jobs:
             fi
           }
 
-          require deps.ffmpeg/99-ffmpeg.ps1 '--disable-decoder=hevc,hevc_cuvid'
+          require deps.ffmpeg/99-ffmpeg.ps1 '--disable-decoder=hevc'
           require deps.ffmpeg/99-ffmpeg.ps1 '--disable-decoder=magicyuv,mace3,mace6'
           require deps.ffmpeg/99-ffmpeg.zsh '--disable-decoder="hevc"'
           require deps.ffmpeg/99-ffmpeg.zsh '--disable-decoder="magicyuv,mace3,mace6"'
@@ -225,11 +225,17 @@ jobs:
           # Positive control: an empty or failed listing must not silently pass.
           if ( ! (Test-Decoder 'h264') ) { throw 'Sanity check failed: h264 decoder missing, decoder listing is unusable' }
 
-          $Forbidden = @('hevc', 'hevc_cuvid', 'magicyuv', 'mace3', 'mace6')
+          $Forbidden = @('hevc', 'magicyuv', 'mace3', 'mace6')
           $Present = $Forbidden | Where-Object { Test-Decoder $_ }
           if ( $Present ) { throw "Forbidden decoders present in build: $($Present -join ', ')" }
 
-          Write-Host "Codec policy OK - absent: $($Forbidden -join ', ')"
+          # hevc_cuvid is the only remaining HEVC decode path on Windows. If it
+          # disappears, NVIDIA users silently lose HEVC playback.
+          $Required = @('hevc_cuvid')
+          $Missing = $Required | Where-Object { ! (Test-Decoder $_) }
+          if ( $Missing ) { throw "Required decoders missing from build: $($Missing -join ', ')" }
+
+          Write-Host "Codec policy OK - absent: $($Forbidden -join ', ') | present: $($Required -join ', ')"
 
       - name: Publish Build Artifacts
         uses: actions/upload-artifact@v4

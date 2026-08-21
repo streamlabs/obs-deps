@@ -26,33 +26,16 @@ jobs:
       run:
         shell: bash
     outputs:
-      seekingTesters: ${{ steps.checks.outputs.seekingTesters }}
       shortHash: ${{ steps.checks.outputs.shortHash }}
       packageVersion: ${{ steps.checks.outputs.packageVersion }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check for GitHub Labels
+      - name: Determine Package Version
         id: checks
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          : Check for GitHub Labels
-
-          case "${GITHUB_EVENT_NAME}" in
-            pull_request)
-              if gh pr view ${{ github.event.number }} --json labels \
-                | jq -e -r '.labels[] | select(.name == "Seeking Testers")' > /dev/null; then
-                echo "seekingTesters=true" >> $GITHUB_OUTPUT
-              else
-                echo "seekingTesters=false" >> $GITHUB_OUTPUT
-              fi
-              ;;
-            *)
-              echo "seekingTesters=false" >> $GITHUB_OUTPUT
-              ;;
-          esac
+          : Determine Package Version
 
           echo "shortHash=${GITHUB_SHA:0:9}" >> $GITHUB_OUTPUT
           if [[ "${GITHUB_REF_TYPE}" == 'tag' ]]; then
@@ -60,6 +43,36 @@ jobs:
           else
             echo "packageVersion=${GITHUB_SHA}" >> $GITHUB_OUTPUT
           fi
+
+  codec-policy:
+    name: Verify Codec Policy (scripts)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assert required codec flags are present
+        run: |
+          : Assert required codec flags are present
+
+          status=0
+          require() {
+            if ! grep -qF -- "$2" "$1"; then
+              echo "::error file=$1::missing required codec flag: $2"
+              status=1
+            fi
+          }
+
+          require deps.ffmpeg/99-ffmpeg.ps1 '--disable-decoder=hevc'
+          require deps.ffmpeg/99-ffmpeg.ps1 '--disable-decoder=magicyuv,mace3,mace6'
+          require deps.ffmpeg/99-ffmpeg.zsh '--disable-decoder="hevc"'
+          require deps.ffmpeg/99-ffmpeg.zsh '--disable-decoder="magicyuv,mace3,mace6"'
+
+          if [[ ${status} -eq 0 ]]; then echo 'All required codec flags present.'; fi
+          exit ${status}
 
   ffmpeg-macos-build:
     name: Build FFmpeg for macOS
@@ -134,14 +147,12 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}/${{ matrix.target }}/${{ steps.setup.outputs.artifactFileName }}
 
       - name: Publish Debug Symbol Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.dsymArtifactName }}
@@ -191,8 +202,33 @@ jobs:
         env:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
+      - name: Verify Codec Policy
+        if: matrix.target == 'x64'
+        run: |
+          $Zip = "${{ github.workspace }}\windows\${{ steps.setup.outputs.artifactFileName }}"
+          $Tmp = Join-Path ${env:RUNNER_TEMP} 'codec-policy'
+          Expand-Archive -Path $Zip -DestinationPath $Tmp -Force
+          $FFmpeg = Get-ChildItem $Tmp -Recurse -Filter 'ffmpeg.exe' | Select-Object -First 1
+          if ( ! $FFmpeg ) { throw 'ffmpeg.exe not found in build output' }
+
+          $Decoders = & $FFmpeg.FullName -hide_banner -decoders
+          function Test-Decoder($Name) {
+            [bool]($Decoders | Select-String -Pattern "^\s*\S+\s+$([regex]::Escape($Name))\s")
+          }
+
+          if ( ! (Test-Decoder 'h264') ) { throw 'Sanity check failed: h264 decoder missing, decoder listing is unusable' }
+
+          $Forbidden = @('hevc', 'magicyuv', 'mace3', 'mace6')
+          $Present = $Forbidden | Where-Object { Test-Decoder $_ }
+          if ( $Present ) { throw "Forbidden decoders present in build: $($Present -join ', ')" }
+
+          $Required = @('hevc_cuvid')
+          $Missing = $Required | Where-Object { ! (Test-Decoder $_) }
+          if ( $Missing ) { throw "Required decoders missing from build: $($Missing -join ', ')" }
+
+          Write-Host "Codec policy OK - absent: $($Forbidden -join ', ') | present: $($Required -join ', ')"
+
       - name: Publish Build Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.artifactName }}
@@ -207,7 +243,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create universal binary package
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: ./.github/actions/create-universal
         with:
           arm64: ffmpeg-macos-arm64-${{ needs.pre-checks.outputs.shortHash }}
@@ -215,7 +250,6 @@ jobs:
           outputName: ffmpeg-macos-universal-${{ needs.pre-checks.outputs.shortHash }}
 
       - name: Create universal dSYM package
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: ./.github/actions/create-universal
         with:
           arm64: ffmpeg-macos-arm64-dSYMs-${{ needs.pre-checks.outputs.shortHash }}
@@ -294,14 +328,12 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}/${{ matrix.target }}/${{ steps.setup.outputs.artifactFileName }}
 
       - name: Publish Debug Symbol Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.dsymArtifactName }}
@@ -316,7 +348,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create universal binary package
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: ./.github/actions/create-universal
         with:
           arm64: deps-macos-arm64-${{ needs.pre-checks.outputs.shortHash }}
@@ -324,7 +355,6 @@ jobs:
           outputName: deps-macos-universal-${{ needs.pre-checks.outputs.shortHash }}
 
       - name: Create universal dSYM package
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: ./.github/actions/create-universal
         with:
           arm64: deps-macos-arm64-dSYMs-${{ needs.pre-checks.outputs.shortHash }}
@@ -381,14 +411,12 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}/macos-universal/${{ steps.setup.outputs.artifactFileName }}
 
       - name: Publish Debug Symbol Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.dsymArtifactName }}
@@ -412,7 +440,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create single architecture binary package
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: ./.github/actions/create-single-arch
         with:
           base: qt6-macos-universal-${{ needs.pre-checks.outputs.shortHash }}
@@ -420,7 +447,6 @@ jobs:
           outputName: qt6-${{ matrix.target }}-${{ needs.pre-checks.outputs.shortHash }}
 
       - name: Create single architecture dSYM package
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: ./.github/actions/create-single-arch
         with:
           base: qt6-macos-universal-dSYMs-${{ needs.pre-checks.outputs.shortHash }}
@@ -520,7 +546,6 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.artifactName }}
@@ -565,7 +590,6 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.setup.outputs.artifactName }}
@@ -584,7 +608,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create Windows Qt package
-        if: github.event_name != 'pull_request' || fromJSON(needs.pre-checks.outputs.seekingTesters)
         uses: ./.github/actions/package-windows-qt
         with:
           releaseArtifact: qt6-windows-${{ matrix.target }}-RelWithDebInfo-${{ needs.pre-checks.outputs.shortHash }}

@@ -2,16 +2,14 @@ autoload -Uz log_debug log_error log_info log_status log_output
 
 ## Dependency Information
 local name='FFmpeg'
-local version='7.1.1'
+local version='7.1.5'
 local url='https://github.com/FFmpeg/FFmpeg.git'
-local hash='db69d06eeeab4f46da15030a80d539efb4503ca8'
+local hash='3a0867c2bfda4a4d4309ca1a8cbdc6175e67f587'
 local -a patches=(
   "* ${0:a:h}/patches/FFmpeg/0001-flvdec-handle-unknown.patch \
     5a5185f54cbcf4672763cce687d1b6ddb662549b69637da826279ce4797f57ef"
   "* ${0:a:h}/patches/FFmpeg/0002-libaomenc-presets.patch \
     d5f1410efb31fe31e8e905ec3f10ccb7841dd5594cb3591c3b205e77232fd183"
-  "* ${0:a:h}/patches/FFmpeg/0004-FFmpeg-5.0.1-cuvid.patch \
-    d44609a43f7f09819c74cdfa6fa90c9a1de61b3673aa95e87a294c259f203717"
 )
 
 ## Build Steps
@@ -215,8 +213,8 @@ config() {
     --disable-doc
     --disable-postproc
     --disable-stripping
-    --disable-encoder="hevc"
     --disable-decoder="hevc"
+    --disable-decoder="magicyuv,mace3,mace6"
   )
 
   if (( ! shared_libs )) {

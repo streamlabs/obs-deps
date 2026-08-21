@@ -58,9 +58,6 @@ jobs:
         run: |
           : Assert required codec flags are present
 
-          # Upstream merges have silently dropped these four times: 2023-03, twice in
-          # 2023-08, and the FFmpeg 7.0 bump (2024-05-08sl2) which went unnoticed for
-          # two years. A grep is cheap; rediscovering the regression is not.
           status=0
           require() {
             if ! grep -qF -- "$2" "$1"; then
@@ -208,9 +205,6 @@ jobs:
       - name: Verify Codec Policy
         if: matrix.target == 'x64'
         run: |
-          # Verify Codec Policy
-          # x64 only: the runner cannot execute an arm64 build.
-
           $Zip = "${{ github.workspace }}\windows\${{ steps.setup.outputs.artifactFileName }}"
           $Tmp = Join-Path ${env:RUNNER_TEMP} 'codec-policy'
           Expand-Archive -Path $Zip -DestinationPath $Tmp -Force
@@ -222,15 +216,12 @@ jobs:
             [bool]($Decoders | Select-String -Pattern "^\s*\S+\s+$([regex]::Escape($Name))\s")
           }
 
-          # Positive control: an empty or failed listing must not silently pass.
           if ( ! (Test-Decoder 'h264') ) { throw 'Sanity check failed: h264 decoder missing, decoder listing is unusable' }
 
           $Forbidden = @('hevc', 'magicyuv', 'mace3', 'mace6')
           $Present = $Forbidden | Where-Object { Test-Decoder $_ }
           if ( $Present ) { throw "Forbidden decoders present in build: $($Present -join ', ')" }
 
-          # hevc_cuvid is the only remaining HEVC decode path on Windows. If it
-          # disappears, NVIDIA users silently lose HEVC playback.
           $Required = @('hevc_cuvid')
           $Missing = $Required | Where-Object { ! (Test-Decoder $_) }
           if ( $Missing ) { throw "Required decoders missing from build: $($Missing -join ', ')" }

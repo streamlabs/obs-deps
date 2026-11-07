@@ -98,6 +98,10 @@ function Setup-BuildParameters {
         "-DCMAKE_PREFIX_PATH=$($script:ConfigData.OutputPath)"
         "-DCMAKE_IGNORE_PREFIX_PATH=C:\Strawberry\c"
         "-DCMAKE_BUILD_TYPE=${script:Configuration}"
+        # VS 2022 17.10+ gives std::mutex a constexpr constructor that msvcp140.dll older than
+        # 14.40 cannot handle: the first lock crashes in mtx_do_lock. Users can load such an old
+        # runtime, so keep the old mutex initialization (needed by srt and libdatachannel).
+        '-DCMAKE_CXX_FLAGS_INIT=/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR'
         '--no-warn-unused-cli'
     )
 

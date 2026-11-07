@@ -16,7 +16,7 @@ function Setup {
     Setup-Dependency -Uri $Uri -Hash $Hash -DestinationPath $Path
 
     if ( ! ( $SkipAll -or $SkipDeps ) ) {
-        Invoke-External pacman.exe -S --noconfirm --needed --noprogressbar nasm
+        Install-Nasm
     }
 }
 

@@ -12,7 +12,7 @@ function Setup {
 
     if ( ! ( $SkipAll -or $SkipDeps ) ) {
         if ( $Target -ne 'arm64' ) {
-            Invoke-External pacman.exe -S --noconfirm --needed --noprogressbar nasm
+            Install-Nasm
         }
         Invoke-External pacman.exe -S --noconfirm --needed --noprogressbar make
     }

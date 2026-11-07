@@ -10,7 +10,7 @@ function Setup {
     Setup-Dependency -Uri $Uri -Hash $Hash -DestinationPath "."
 
     if ( ! ( $SkipAll -or $SkipDeps ) ) {
-        Invoke-External pacman.exe -S --noconfirm --needed --noprogressbar nasm
+        Install-Nasm
         Invoke-External pacman.exe -S --noconfirm --needed --noprogressbar make
         Invoke-External pacman.exe -S --noconfirm --needed --noprogressbar diffutils
     }

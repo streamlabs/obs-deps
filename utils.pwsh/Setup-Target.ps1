@@ -141,7 +141,7 @@ function Find-VisualStudio {
         }
     }
 
-    $VisualStudioData = Get-VSSetupInstance -Prerelease:$($script:VSPrerelease) | Select-VSSetupInstance -Version '[16.0,18.0)' -Latest
+    $VisualStudioData = Get-VSSetupInstance -Prerelease:$($script:VSPrerelease) | Select-VSSetupInstance -Version '[16.0,19.0)' -Latest
 
     if ( $VisualStudioData -eq $null ) {
         $ErrorMessage = @(

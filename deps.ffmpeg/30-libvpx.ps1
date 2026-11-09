@@ -3,7 +3,13 @@ param(
     [string] $Version = '1.14.1',
     [string] $Uri = 'https://github.com/webmproject/libvpx/archive/refs/tags/v1.14.1.zip',
     [string] $Hash = "${PSScriptRoot}/checksums/v1.14.1.zip.sha256",
-    [array] $Targets = @('x64', 'arm64')
+    [array] $Targets = @('x64', 'arm64'),
+    [array] $Patches = @(
+        @{
+            PatchFile = "${PSScriptRoot}/patches/libvpx/0003-x86_abi_support.asm-use-.rdata-for-win32win64.patch"
+            HashSum = "f80ea0fd7988529388960a61b08cdf69692ec5a02e27cdf1416d6304091f5301"
+        }
+    )
 )
 
 function Setup {
@@ -21,6 +27,16 @@ function Clean {
     if ( Test-Path "build_${Target}" ) {
         Log-Information "Clean build directory (${Target})"
         Remove-Item -Path "build_${Target}" -Recurse -Force
+    }
+}
+
+function Patch {
+    Log-Information "Patch (${Target})"
+    Set-Location "${Name}-${Version}"
+
+    $Patches | ForEach-Object {
+        $Params = $_
+        Safe-Patch @Params
     }
 }
 
@@ -79,10 +95,20 @@ function Build {
     Log-Information "Build (${Target})"
     Set-Location "${Name}-${Version}"
 
+    # libvpx's vs17 projects select v143 even in a VS2026 shell. Mixing its /GL
+    # objects with the other dependencies then fails FFmpeg's link with C1047.
+    $Toolset = if ( $Target -eq 'arm64' ) {
+        'ClangCl'
+    } elseif ( (Find-VisualStudio).InstallationVersion.Major -eq 18 ) {
+        'v145'
+    } else {
+        'v143'
+    }
+
     $Params = @{
         BasePath = (Get-Location | Convert-Path)
         BuildPath = "build_${Target}"
-        BuildCommand = "make -j${env:NUMBER_OF_PROCESSORS}"
+        BuildCommand = "make -j${env:NUMBER_OF_PROCESSORS} MSBUILD_TOOL='msbuild.exe -p:PlatformToolset=${Toolset}'"
         Target = $Target
     }
 
@@ -100,10 +126,18 @@ function Install {
     Log-Information "Install (${Target})"
     Set-Location "${Name}-${Version}"
 
+    $Toolset = if ( $Target -eq 'arm64' ) {
+        'ClangCl'
+    } elseif ( (Find-VisualStudio).InstallationVersion.Major -eq 18 ) {
+        'v145'
+    } else {
+        'v143'
+    }
+
     $Params = @{
         BasePath = (Get-Location | Convert-Path)
         BuildPath = "build_${Target}"
-        BuildCommand = "make install"
+        BuildCommand = "make install MSBUILD_TOOL='msbuild.exe -p:PlatformToolset=${Toolset}'"
         Target = $Target
     }
 

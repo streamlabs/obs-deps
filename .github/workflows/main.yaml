@@ -30,7 +30,7 @@ jobs:
       packageVersion: ${{ steps.checks.outputs.packageVersion }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Determine Package Version
         id: checks
@@ -52,12 +52,15 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Assert required codec flags are present
         run: |
           : Assert required codec flags are present
 
+          # Upstream merges have silently dropped these four times: 2023-03, twice in
+          # 2023-08, and the FFmpeg 7.0 bump (2024-05-08sl2) which went unnoticed for
+          # two years. A grep is cheap; rediscovering the regression is not.
           status=0
           require() {
             if ! grep -qF -- "$2" "$1"; then
@@ -94,7 +97,7 @@ jobs:
         shell: zsh --no-rcs --errexit --pipefail {0}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Environment
         id: setup
@@ -147,20 +150,20 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}/${{ matrix.target }}/${{ steps.setup.outputs.artifactFileName }}
 
       - name: Publish Debug Symbol Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.dsymArtifactName }}
           path: ${{ github.workspace }}/${{ matrix.target }}/${{ steps.setup.outputs.dsymArtifactFileName }}
 
   ffmpeg-windows-build:
     name: Build FFmpeg for Windows
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     needs: pre-checks
     strategy:
       fail-fast: true
@@ -178,7 +181,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Environment
         id: setup
@@ -205,6 +208,9 @@ jobs:
       - name: Verify Codec Policy
         if: matrix.target == 'x64'
         run: |
+          # Verify Codec Policy
+          # x64 only: the runner cannot execute an arm64 build.
+
           $Zip = "${{ github.workspace }}\windows\${{ steps.setup.outputs.artifactFileName }}"
           $Tmp = Join-Path ${env:RUNNER_TEMP} 'codec-policy'
           Expand-Archive -Path $Zip -DestinationPath $Tmp -Force
@@ -216,12 +222,15 @@ jobs:
             [bool]($Decoders | Select-String -Pattern "^\s*\S+\s+$([regex]::Escape($Name))\s")
           }
 
+          # Positive control: an empty or failed listing must not silently pass.
           if ( ! (Test-Decoder 'h264') ) { throw 'Sanity check failed: h264 decoder missing, decoder listing is unusable' }
 
           $Forbidden = @('hevc', 'magicyuv', 'mace3', 'mace6')
           $Present = $Forbidden | Where-Object { Test-Decoder $_ }
           if ( $Present ) { throw "Forbidden decoders present in build: $($Present -join ', ')" }
 
+          # hevc_cuvid is the only remaining HEVC decode path on Windows. If it
+          # disappears, NVIDIA users silently lose HEVC playback.
           $Required = @('hevc_cuvid')
           $Missing = $Required | Where-Object { ! (Test-Decoder $_) }
           if ( $Missing ) { throw "Required decoders missing from build: $($Missing -join ', ')" }
@@ -229,7 +238,7 @@ jobs:
           Write-Host "Codec policy OK - absent: $($Forbidden -join ', ') | present: $($Required -join ', ')"
 
       - name: Publish Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}\windows\${{ steps.setup.outputs.artifactFileName }}
@@ -240,7 +249,7 @@ jobs:
     needs: [pre-checks, ffmpeg-macos-build]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Create universal binary package
         uses: ./.github/actions/create-universal
@@ -276,7 +285,7 @@ jobs:
         shell: zsh --no-rcs --errexit --pipefail {0}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Environment
         id: setup
@@ -328,13 +337,13 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}/${{ matrix.target }}/${{ steps.setup.outputs.artifactFileName }}
 
       - name: Publish Debug Symbol Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.dsymArtifactName }}
           path: ${{ github.workspace }}/${{ matrix.target }}/${{ steps.setup.outputs.dsymArtifactFileName }}
@@ -345,7 +354,7 @@ jobs:
     needs: [pre-checks, macos-build]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Create universal binary package
         uses: ./.github/actions/create-universal
@@ -370,7 +379,7 @@ jobs:
         shell: zsh --no-rcs --errexit --pipefail {0}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Environment
         id: setup
@@ -411,13 +420,13 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}/macos-universal/${{ steps.setup.outputs.artifactFileName }}
 
       - name: Publish Debug Symbol Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.dsymArtifactName }}
           path: ${{ github.workspace }}/macos-universal/${{ steps.setup.outputs.dsymArtifactFileName }}
@@ -437,7 +446,7 @@ jobs:
     needs: [pre-checks, macos-qt6-build]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Create single architecture binary package
         uses: ./.github/actions/create-single-arch
@@ -455,7 +464,7 @@ jobs:
 
   windows-build:
     name: Build Windows Dependencies
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     needs: pre-checks
     strategy:
       fail-fast: true
@@ -476,7 +485,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Environment
         id: setup
@@ -546,7 +555,7 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}\windows\${{ steps.setup.outputs.artifactFileName }}
@@ -561,14 +570,14 @@ jobs:
         config: [RelWithDebInfo, Debug]
         include:
           - target: x64
-            runner-os: windows-2022
+            runner-os: windows-2025-vs2026
           - target: arm64
             runner-os: windows-11-arm
     runs-on: ${{ matrix.runner-os }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Environment
         id: setup
@@ -590,14 +599,14 @@ jobs:
           OBS_DEPS_VERSION: ${{ needs.pre-checks.outputs.packageVersion }}
 
       - name: Publish Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.setup.outputs.artifactName }}
           path: ${{ github.workspace }}/windows/${{ steps.setup.outputs.artifactFileName }}
 
   windows-qt6-package:
     name: Package Windows Qt6
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     strategy:
       fail-fast: true
       matrix:
@@ -605,7 +614,7 @@ jobs:
     needs: [pre-checks, windows-qt6-build]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Create Windows Qt package
         uses: ./.github/actions/package-windows-qt
@@ -621,7 +630,7 @@ jobs:
       RELEASE_BUCKET: "obs-studio-deployment"
     runs-on: ubuntu-24.04
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-    needs: [ffmpeg-package-universal, ffmpeg-windows-build, macos-package-universal, macos-qt6-package, windows-build, windows-qt6-package]
+    needs: [codec-policy, ffmpeg-package-universal, ffmpeg-windows-build, macos-package-universal, macos-qt6-package, windows-build, windows-qt6-package]
     defaults:
       run:
         shell: bash
@@ -633,7 +642,7 @@ jobs:
           echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
 
       - name: Package Windows dependencies
         run: |
@@ -720,7 +729,7 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
         with:
           draft: false
           prerelease: false

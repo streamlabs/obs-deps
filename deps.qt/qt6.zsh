@@ -2,14 +2,16 @@ autoload -Uz log_debug log_error log_info log_status log_output
 
 ## Dependency Information
 local name='qt6'
-local version=6.8.3
-local url='https://download.qt.io/archive/qt/6.8/6.8.3'
+local version=6.11.1
+local url='https://download.qt.io/archive/qt/6.11/6.11.1'
 local hash="${0:a:h}/checksums"
 local -a patches=(
   "macos ${0:a:h}/patches/Qt6/mac/0001-QTBUG-121351.patch \
     df46dc93e874c36b2ad0da746c43585528308a7fcde60930c1ffb5e841472e7b"
-  "macos ${0:a:h}/patches/Qt6/mac/0002-QTBUG-137687.patch \
-    2ddccdaf111332618e8d95ebf483f1f393d499acd5212b74fa497a1c2134b796"
+  "macos ${0:a:h}/patches/Qt6/mac/0002-QTBUG-146665.patch \
+    48120aa1118711447cddba04b3c2a19aa8c1fe91f3ed4815f8f33e759ef22634"
+  "macos ${0:a:h}/patches/Qt6/mac/0003-QTBUG-147602.patch \
+    fefcb451782367da6e91fc6b8fc8b75245dd591bb66b51f73f6ef51ede8c04c4"
 )
 
 local -a qt_components=(

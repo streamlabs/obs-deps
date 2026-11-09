@@ -88,10 +88,9 @@ package() {
 
     rm -rf -- lib/^(*.dylib|*.a|ffmpeg|ffprobe|*.so*|*.lib|*.framework|*.dSYM|cmake)(N)
     rm -rf -- lib/(libpcre*|libpng*|libfreetype.a)(N)
-    rm -rf -- lib/cmake/MbedTLS(N)
     rm -rf -- bin/^(*.exe|*.dll|*.pdb|ffmpeg|ffprobe|swig)(N)
 
-    if [[ ${PACKAGE_NAME} == ffmpeg ]] rm -rf -- lib/*.a(N)
+    if [[ ${PACKAGE_NAME} == ffmpeg ]] rm -rf -- lib/(*.a~(libeverest.a|libmbedcrypto.a|libmbedtls.a|libmbedx509.a|libp256m.a))(N)
 
     if [[ -f bin/swig ]] {
       swig_lib=(share/swig/*(/))

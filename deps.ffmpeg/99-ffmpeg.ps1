@@ -1,8 +1,8 @@
 param(
     [string] $Name = 'FFmpeg',
-    [string] $Version = '7.1.5',
+    [string] $Version = '8.1.2',
     [string] $Uri = 'https://github.com/FFmpeg/FFmpeg.git',
-    [string] $Hash = "3a0867c2bfda4a4d4309ca1a8cbdc6175e67f587",
+    [string] $Hash = "38b88335f99e76ed89ff3c93f877fdefce736c13",
     [array] $Targets = @('x64', 'arm64'),
     [array] $Patches = @(
         @{
@@ -68,7 +68,8 @@ function Configure {
         '--toolchain=msvc'
         ('--extra-cflags=' + "'-D_WINDLL -MD -D_WIN32_WINNT=0x0A00" + $(if ( $Target -eq 'arm64' ) { ' -D__ARM_PCS_VFP' }) + "'")
         ('--extra-cxxflags=' + "'-MD -D_WIN32_WINNT=0x0A00'")
-        ('--extra-ldflags=' + "'-APPCONTAINER:NO -MACHINE:${Target}'")
+        ('--extra-ldflags=' + "'-APPCONTAINER:NO -MACHINE:${Target} -DEBUG" +
+            $(if ( $Configuration -match '(Release|RelWithDebInfo|MinSizeRel)' ) { ' -OPT:REF -OPT:ICF -LTCG -INCREMENTAL:NO' }) + "'")
         $(if ( $Target -eq 'arm64' ) { '--as=armasm64.exe','--cpu=armv8' })
         '--pkg-config=pkg-config'
         $(if ( $Target -ne 'x86' ) { '--target-os=win64' } else { '--target-os=win32' })
@@ -92,7 +93,6 @@ function Configure {
         '--disable-indev=jack'
         '--disable-sdl2'
         '--disable-doc'
-        '--disable-postproc'
         # Unused by OBS and a repeat source of decoder CVEs (CVE-2026-8461, CVE-2026-66039)
         '--disable-decoder=magicyuv,mace3,mace6'
         # Software HEVC decode. Policy since 2022, lost in the FFmpeg 7.0 bump
@@ -173,4 +173,9 @@ function Install {
     $env:VERBOSE = $(if ( $VerbosePreference -eq 'Continue' ) { '1' })
     Invoke-DevShell @Params
     $Backup.GetEnumerator() | ForEach-Object { Set-Item -Path "env:\$($_.Key)" -Value $_.Value }
+
+    Push-Location "build_${Target}"
+    Copy-Item 'ffmpeg_g.exe','ffprobe_g.exe' "$($script:ConfigData.OutputPath)/bin"
+    Get-ChildItem -Path '.' -Filter '*.pdb' -Recurse | Copy-Item -Destination "$($script:ConfigData.OutputPath)/bin"
+    Pop-Location
 }

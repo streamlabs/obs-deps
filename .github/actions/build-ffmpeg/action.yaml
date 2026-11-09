@@ -39,14 +39,14 @@ runs:
         echo "hash=${ffmpeg_dep_hash:0:9}" >> $GITHUB_OUTPUT
 
     - name: Build and Install FFmpeg Dependencies
-      if: runner.os == 'macOS' && steps.ffmpeg-deps-cache.outputs.cache-hit != 'true'
+      if: runner.os == 'macOS'
       shell: zsh --no-rcs --errexit --pipefail {0}
       run: |
         : Build and Install FFmpeg Dependencies
         ./build-ffmpeg.zsh '*~ffmpeg' --target ${{ inputs.target }} --config ${{ inputs.config }} --${{ inputs.type }}
 
     - name: Build and Install FFmpeg Dependencies
-      if: runner.os == 'Windows' && steps.ffmpeg-deps-cache.outputs.cache-hit != 'true'
+      if: runner.os == 'Windows'
       shell: pwsh
       run: |
         # Build and Install FFmpeg Dependencies
@@ -73,8 +73,6 @@ runs:
           --${{ inputs.type }}
         )
 
-        if [[ '${{ steps.ffmpeg-cache.outputs.cache-hit }}' == 'true' ]] build_args+=(--skip-build --skip-unpack)
-
         ./build-ffmpeg.zsh ${build_args}
 
     - name: Build and Install FFmpeg
@@ -88,8 +86,6 @@ runs:
           Target = '${{ inputs.target }}'
           Config = '${{ inputs.config }}'
           Shared = $(if ( '${{ inputs.type }}' -eq 'shared' ) { $true } else { $false })
-          SkipBuild = $(if ( '${{ steps.ffmpeg-cache.outputs.cache-hit }}' -eq 'true' ) { $true } else { $false })
-          SkipUnpack = $(if ( '${{ steps.ffmpeg-cache.outputs.cache-hit }}' -eq 'true' ) { $true } else { $false })
         }
 
         ./Build-Dependencies.ps1 @BuildArgs

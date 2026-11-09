@@ -2,14 +2,14 @@ autoload -Uz log_debug log_error log_info log_status log_output
 
 ## Dependency Information
 local name='aom'
-local version='3.12.0'
+local version='3.13.1'
 local url='https://aomedia.googlesource.com/aom.git'
-local hash='3b624af45b86646a20b11a9ff803aeae588cdee6'
+local hash='d772e334cc724105040382a977ebb10dfd393293'
 local -a patches=(
-  "macos ${0:a:h}/patches/libaom/0002-handle-nasm-3-help-output.patch \
-  31df06049b22f8042e40054c36e638ee79d952d23cf059a9166fe5d2f71fb4dd"
-  "windows ${0:a:h}/patches/libaom/0001-force-threading-shim-usage.patch \
+  "windows ${0:a:h}/patches/aom/0001-force-threading-shim-usage.patch \
   6fa9ca74001c5fa3a6521a2b4944be2a8b4350d31c0234aede9a7052a8f1890b"
+  "macos ${0:a:h}/patches/aom/0002-fix-cmake-nasm-detection.patch \
+  47d926731a31990b432f188e7e16628bd2ca334f5b71fe55241d7b845884a35d"
 )
 
 ## Dependency Overrides

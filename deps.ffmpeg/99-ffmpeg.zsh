@@ -2,9 +2,9 @@ autoload -Uz log_debug log_error log_info log_status log_output
 
 ## Dependency Information
 local name='FFmpeg'
-local version='7.1.5'
+local version='8.1.2'
 local url='https://github.com/FFmpeg/FFmpeg.git'
-local hash='3a0867c2bfda4a4d4309ca1a8cbdc6175e67f587'
+local hash='38b88335f99e76ed89ff3c93f877fdefce736c13'
 local -a patches=(
   "* ${0:a:h}/patches/FFmpeg/0001-flvdec-handle-unknown.patch \
     5a5185f54cbcf4672763cce687d1b6ddb662549b69637da826279ce4797f57ef"
@@ -211,7 +211,6 @@ config() {
     --disable-indev=jack
     --disable-sdl2
     --disable-doc
-    --disable-postproc
     --disable-stripping
     # Software HEVC decode. No cuvid on macOS, so no hevc_cuvid counterpart here.
     # Hardware encoders are unaffected.

@@ -95,10 +95,20 @@ function Build {
     Log-Information "Build (${Target})"
     Set-Location "${Name}-${Version}"
 
+    # libvpx's vs17 projects select v143 even in a VS2026 shell. Mixing its /GL
+    # objects with the other dependencies then fails FFmpeg's link with C1047.
+    $Toolset = if ( $Target -eq 'arm64' ) {
+        'ClangCl'
+    } elseif ( (Find-VisualStudio).InstallationVersion.Major -eq 18 ) {
+        'v145'
+    } else {
+        'v143'
+    }
+
     $Params = @{
         BasePath = (Get-Location | Convert-Path)
         BuildPath = "build_${Target}"
-        BuildCommand = "make -j${env:NUMBER_OF_PROCESSORS}"
+        BuildCommand = "make -j${env:NUMBER_OF_PROCESSORS} MSBUILD_TOOL='msbuild.exe -p:PlatformToolset=${Toolset}'"
         Target = $Target
     }
 
@@ -116,10 +126,18 @@ function Install {
     Log-Information "Install (${Target})"
     Set-Location "${Name}-${Version}"
 
+    $Toolset = if ( $Target -eq 'arm64' ) {
+        'ClangCl'
+    } elseif ( (Find-VisualStudio).InstallationVersion.Major -eq 18 ) {
+        'v145'
+    } else {
+        'v143'
+    }
+
     $Params = @{
         BasePath = (Get-Location | Convert-Path)
         BuildPath = "build_${Target}"
-        BuildCommand = "make install"
+        BuildCommand = "make install MSBUILD_TOOL='msbuild.exe -p:PlatformToolset=${Toolset}'"
         Target = $Target
     }
 
